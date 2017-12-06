@@ -4,6 +4,14 @@ import numpy as np
 import moviepy
 import image_manipulation
 import calibration_util as calib
+import glob
+
+
+def side_by_side_plot(image1, image2, title1='Image 1', title2='Image 2'):
+    figure, axarr = plt.subplots(1,2)
+    axarr[0].imshow(image1)
+    axarr[1].imshow(image2)
+    plt.show()
 
 
 def find_laneLines_sobel(img, ksize=3, thresh=(0,255), mag_thresh=(0,255), dir_thresh=(0, np.pi/2)):
@@ -21,14 +29,6 @@ def find_laneLines_sobel(img, ksize=3, thresh=(0,255), mag_thresh=(0,255), dir_t
 
 
 ## Image processing pipeline ##
-
-def getImagePoints(image):
-    imagePoints = []
-    objectPoints = []
-    return imagePoints, objectPoints
-
-
-
 
 # Transform to a birds-eye perspective
 def perspective_transform_matrix(input_points, output_points):
@@ -113,10 +113,25 @@ def find_lane_lines(binary_warped):
     right_fit = np.polyfit(righty, rightx, 2)
 
 if __name__ == '__main__':
-    # Import video
+    # Full processing pipeline here
+
+    # Preparations
+    calib_folder = './camera_cal/'
+    calib_files = glob.glob(calib_folder + 'calibration*.jpg')
+
     # Calibrate camera
+    camera_matrix, distort_coeffs = calib.getCalibParams(calib_files)
     # Undistort frame
+    random_ind = np.random.randint(0, len(calib_files))
+
+    original_image = plt.imread(calib_files[random_ind])
+    undistorted_image = cv2.undistort(original_image, camera_matrix, distort_coeffs, None, newCameraMatrix=camera_matrix)
+
+    # Show original and undistorted image
+    side_by_side_plot(original_image, undistorted_image)
+
     # Implement color & gradient threshold
+
     # Warp image (perspective transform)
 
     # Find lane curvature
@@ -124,4 +139,3 @@ if __name__ == '__main__':
     # Inverse transform to original perspective
     # Add frame to video
     # Save Video
-    pass
