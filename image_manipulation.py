@@ -124,3 +124,7 @@ def color_and_gradient_threshold(img):
     # Combine the two binary thresholds
     combined_binary = np.zeros_like(sxbinary)
     combined_binary[(s_binary == 1) | (sxbinary == 1)] = 1
+
+
+def whiteLinesMask(image):
+    pass

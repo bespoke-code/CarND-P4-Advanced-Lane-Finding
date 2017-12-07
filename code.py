@@ -124,16 +124,43 @@ if __name__ == '__main__':
     # Undistort frame
     random_ind = np.random.randint(0, len(calib_files))
 
-    original_image = plt.imread(calib_files[random_ind])
+    #original_image = plt.imread(calib_files[random_ind])
+    original_image = plt.imread('./test_images/test1.jpg')
+    width = original_image.shape[1]
+    height = original_image.shape[0]
+    print(height, width)
     undistorted_image = cv2.undistort(original_image, camera_matrix, distort_coeffs, None, newCameraMatrix=camera_matrix)
 
     # Show original and undistorted image
     side_by_side_plot(original_image, undistorted_image)
 
     # Implement color & gradient threshold
+    # White lane detect
+    # Yellow lanes detect
+    # Color/gradient threshold
+    #color_grad_thresh = image_manipulation.color_and_gradient_threshold(undistorted_image)
 
     # Warp image (perspective transform)
+    top_left = [7/16*width, 6/10*height]
+    top_right = [9/16*width, 6/10*height]
+    bottom_left = [1/16*width, 9/10*height]
+    bottom_right = [15/16*width, 9/10*height]
+    src_points = np.float32([top_left, top_right, bottom_left, bottom_right])
+    dst_points = np.float32([
+        [1/16*width, 0/10*height], # top left
+        [15/16*width, 0/10*height], # top right
+        [1/16*width, 10/10*height], # bottom left
+        [15/16*width, 10/10*height]  # bottom right
+    ])
+    print(src_points)
+    print(dst_points)
 
+    warp_matrix = cv2.getPerspectiveTransform(src_points, dst_points)
+    unwarp_matrix = cv2.getPerspectiveTransform(dst_points, src_points)
+
+    warped_image = cv2.warpPerspective(undistorted_image, warp_matrix, (width, height))
+
+    side_by_side_plot(undistorted_image, warped_image)
     # Find lane curvature
     # draw lines and colour-fill polygon
     # Inverse transform to original perspective
