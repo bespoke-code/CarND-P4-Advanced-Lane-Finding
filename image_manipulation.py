@@ -207,11 +207,11 @@ def combined_sobel(img, ksize=3, thresh=(0,255), mag_thresh=(0,255), dir_thresh=
 # The final image processing pipeline
 #######################################################################
 def processFrame(frame):
-    '''
+    """
     Image processing pipeline for a video frame / standalone road image.
     :param frame: A video frame or an RGB camera image.
     :return: A mask showing the lane lines on the road image.
-    '''
+    """
     camera_matrix = calib.getCameraCalibration()
     dist_coeffs = calib.getDistortionCoeffs()
     warp_matrix = getWarpMatrix()

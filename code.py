@@ -1,58 +1,37 @@
-from matplotlib import pyplot as plt
 import cv2
 import numpy as np
-import moviepy
 import image_manipulation
 import calibration_util as calib
 import line_util
+from moviepy.editor import VideoFileClip
+import plots_util
+
+# Global parameters for use
+first_frame = True
+width = 0
+height = 0
+channels = 0
+
+# Some useful parameters here
+bad_frames_count = 0
+need_init = True
+last_frame_good = False
+successive_good_frames = 0
+
+# Line queue. Holds line measurements for smoothing out video output
+line_queue = line_util.LineQueue(5)
 
 
-def side_by_side_plot(image1, image2, title1='Image 1', title2='Image 2'):
-    figure, axarr = plt.subplots(1,2)
-    axarr[0].imshow(image1)
-    axarr[1].imshow(image2)
-    plt.show()
+def process_image(frame):
+    global first_frame
+    global width
+    global height
+    global channels
 
-
-def showImage(image, title='Photo'):
-    plt.imshow(image)
-    plt.title(title)
-    plt.show()
-
-
-def showGrayImage(image, title='Photo'):
-    plt.imshow(image, cmap='gray')
-    plt.title(title)
-    plt.show()
-
-
-def showChannels(image):
-    fig, axs = plt.subplots(nrows=1, ncols=3, figsize=(15, 5))
-
-    for c, ax in zip(range(3), axs):
-        tmp_img = np.zeros(image.shape, dtype="uint8")
-        tmp_img[:, :, c] = image[:, :, c]
-        tmp_img = cv2.cvtColor(tmp_img, cv2.COLOR_RGB2GRAY)
-        ax.imshow(tmp_img, cmap='gray')
-        ax.set_axis_off()
-    plt.show()
-
-
-if __name__ == '__main__':
-    first_frame = True
-    width = 0
-    height = 0
-    channels = 0
-
-    # Some useful parameters here
-    bad_frames_count = 0
-    need_init = True
-    last_frame_good = False
-    successive_good_frames = 0
-
-    # Line queue. Holds line measurements for smoothing out video output
-    line_queue = line_util.LineQueue(5)
-
+    global bad_frames_count
+    global need_init
+    global last_frame_good
+    global successive_good_frames
     # Full processing pipeline
     ###################################################################
     # Get calibration parameters.
@@ -65,13 +44,12 @@ if __name__ == '__main__':
 
     # 1. Grab video frame.
     #   - on the first video frame, grab information about the video size.
-    frame = np.zeros((720, 1280, 3), dtype=np.uint8)
-
     if first_frame:
         width = frame.shape[1]
         height = frame.shape[0]
         channels = frame.shape[2]
         print('Video size information updated.')
+        first_frame = False
 
     # 3. Process the frame using the image processing pipeline.
     #   - undistort image
@@ -122,6 +100,15 @@ if __name__ == '__main__':
         else:
             status_color = (255, 255, 0)
     overlay = image_manipulation.frameOverlay(frame, previous_left, previous_right, width=frame.shape[1], height=frame.shape[0], color=status_color)
+    return cv2.addWeighted(frame, 1.0, overlay, 0.3, 0.0)
+
+
+if __name__ == '__main__':
 
     # 7. Add frame back to video
     #   - Save Video
+    out_dir='./'
+    output = out_dir+'generated_project_video.mp4'
+    clip = VideoFileClip("project_video.mp4")
+    out_clip = clip.fl_image(process_image) 
+    out_clip.write_videofile(output, audio=False)
