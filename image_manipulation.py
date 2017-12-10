@@ -39,15 +39,15 @@ def warp_image(image, warp_matrix):
 
 
 def getWarpMatrix():
-    return [[-4.86204634e-01, -1.49507925e+00, 9.38982700e+02],
+    return np.array( [[-4.86204634e-01, -1.49507925e+00, 9.38982700e+02],
             [-5.88418203e-15, -1.94426603e+00, 8.74919714e+02],
-            [-8.89045781e-18, -2.37922580e-03, 1.00000000e+00]]
+            [-8.89045781e-18, -2.37922580e-03, 1.00000000e+00]])
 
 
 def getUnwarpMatrix():
-    return [[1.45312500e-01, -7.81724211e-01, 5.47500000e+02],
+    return np.array([[1.45312500e-01, -7.81724211e-01, 5.47500000e+02],
             [-3.55271368e-15, -5.14332907e-01, 4.50000000e+02],
-            [-8.23993651e-18, -1.22371412e-03, 1.00000000e+00]]
+            [-8.23993651e-18, -1.22371412e-03, 1.00000000e+00]])
 
 
 # Image gradient and colour manipulation
@@ -254,15 +254,19 @@ def processFrame(frame):
     return result_mask
 
 
-def frameOverlay(frame, left_line, right_line, width=1280, height=720, color=(0, 255, 0)):
+#def frameOverlay(frame, left_line, right_line, width=1280, height=720, color=(0, 255, 0)):
+def frameOverlay(frame, left_fitx_p, right_fitx_p, ploty, width=1280, height=720, color=(0, 255, 0)):
     # Create an image to draw the lines on
-    warp_zero = np.zeros((width, height), dtype=np.uint8)
+    #warp_zero = np.zeros((width, height), dtype=np.uint8)
+    warp_zero = np.zeros_like(frame[:, :, 1]).astype(np.uint8)
     #warp_zero = np.zeros_like(warped).astype(np.uint8)
     color_warp = np.dstack((warp_zero, warp_zero, warp_zero))
 
     # Recast the x and y points into usable format for cv2.fillPoly()
-    pts_left = np.array([np.transpose(np.vstack([left_line.fitx, left_line.ploty]))])
-    pts_right = np.array([np.flipud(np.transpose(np.vstack([right_line.fitx, right_line.ploty])))])
+    #pts_left = np.array([np.transpose(np.vstack([left_line.fitx, left_line.ploty]))])
+    pts_left = np.array([np.transpose(np.vstack([left_fitx_p, ploty]))])
+    #pts_right = np.array([np.flipud(np.transpose(np.vstack([right_line.fitx, right_line.ploty])))])
+    pts_right = np.array([np.flipud(np.transpose(np.vstack([right_fitx_p, ploty])))])
     pts = np.hstack((pts_left, pts_right))
 
     # Draw the lane onto the warped blank image
@@ -271,5 +275,5 @@ def frameOverlay(frame, left_line, right_line, width=1280, height=720, color=(0,
     # Warp the blank back to original image space using inverse perspective matrix (Minv)
     newwarp = cv2.warpPerspective(color_warp, getUnwarpMatrix(), (width, height))
     # Combine the result with the original image
-    result = cv2.addWeighted(frame, 1, newwarp, 0.3, 0)
+    result = cv2.addWeighted(frame, 1, newwarp, 0.5, 0)
     return result

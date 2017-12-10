@@ -5,13 +5,13 @@ from matplotlib import pyplot as plt
 
 
 def getCameraCalibration():
-    return [[1.15777930e+03, 0.00000000e+00, 6.67111054e+02],
+    return np.array([[1.15777930e+03, 0.00000000e+00, 6.67111054e+02],
              [0.00000000e+00, 1.15282291e+03, 3.86128937e+02],
-             [0.00000000e+00, 0.00000000e+00, 1.00000000e+00]]
+             [0.00000000e+00, 0.00000000e+00, 1.00000000e+00]])
 
 
 def getDistortionCoeffs():
-    return [[-0.24688775, -0.02373134, -0.00109842, 0.00035108, -0.00258569]]
+    return np.array([[-0.24688775, -0.02373134, -0.00109842, 0.00035108, -0.00258569]])
 
 
 def calibrateCamera(image_shape, objpoints, imgpoints):

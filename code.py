@@ -59,22 +59,24 @@ def process_image(frame):
 
     # 4. Use the mask to find the lane lines.
     follow_previous_lines = ((bad_frames_count < 3) and (need_init==False))
-    left_line, right_line = line_util.do_line_search(mask, follow_previous_lines)
+    #left_line, right_line = line_util.do_line_search(mask, follow_previous_lines)
+    left_line, right_line, ploty, left_fitx, right_fitx = line_util.do_line_search(mask, True)
 
     # 5. Sanity check: Are the detected lane lines OK?
     # Performed on the premise that the lines will deviate
     # only a small amount in successive frames.
     # Outliers are neutralized
-    previous_left, previous_right = line_queue.sanitize(left_line, right_line)
+    #previous_left, previous_right = line_queue.sanitize(left_line, right_line)
+    previous_left, previous_right = left_line, right_line
 
-    if previous_left.detected and previous_right.detected:
-        successive_good_frames += 1
-        need_init = False
-        last_frame_good = True
-        bad_frames_count = 0
-    else:
-        last_frame_good = False
-        successive_good_frames = 0
+    #if previous_left.detected and previous_right.detected:
+    #    successive_good_frames += 1
+    #    need_init = False
+    #    last_frame_good = True
+    #    bad_frames_count = 0
+    #else:
+    #    last_frame_good = False
+    #    successive_good_frames = 0
 
     if follow_previous_lines:
         bad_frames_count = 0
@@ -99,16 +101,18 @@ def process_image(frame):
             status_color = (0, 255, 0)
         else:
             status_color = (255, 255, 0)
-    overlay = image_manipulation.frameOverlay(frame, previous_left, previous_right, width=frame.shape[1], height=frame.shape[0], color=status_color)
-    return cv2.addWeighted(frame, 1.0, overlay, 0.3, 0.0)
+    status_color = (0, 255, 0)
+    #overlay = image_manipulation.frameOverlay(frame, previous_left, previous_right, width=frame.shape[1], height=frame.shape[0], color=status_color)
+    overlay = image_manipulation.frameOverlay(frame, left_fitx, right_fitx, ploty, width=frame.shape[1], height=frame.shape[0], color=status_color)
+    return overlay
 
 
 if __name__ == '__main__':
+    out_dir='./data/'
+    output = out_dir+'generated_project_video.mp4'
 
+    clip = VideoFileClip("project_video.mp4")
+    out_clip = clip.fl_image(process_image)
     # 7. Add frame back to video
     #   - Save Video
-    out_dir='./'
-    output = out_dir+'generated_project_video.mp4'
-    clip = VideoFileClip("project_video.mp4")
-    out_clip = clip.fl_image(process_image) 
     out_clip.write_videofile(output, audio=False)
