@@ -27,9 +27,6 @@ def find_laneLines_sobel(img, ksize=3, thresh=(0,255), mag_thresh=(0,255), dir_t
     combined[((gradx == 1) & (grady == 1)) | ((mag_binary == 1) & (dir_binary == 1))] = 1
     return combined
 
-
-## Image processing pipeline ##
-
 # Transform to a birds-eye perspective
 def perspective_transform_matrix(input_points, output_points):
     return cv2.getPerspectiveTransform(input_points, output_points)
@@ -125,7 +122,7 @@ if __name__ == '__main__':
     random_ind = np.random.randint(0, len(calib_files))
 
     #original_image = plt.imread(calib_files[random_ind])
-    original_image = plt.imread('./test_images/test1.jpg')
+    original_image = plt.imread('./test_images/straight_lines1.jpg')
     width = original_image.shape[1]
     height = original_image.shape[0]
     print(height, width)
@@ -141,16 +138,18 @@ if __name__ == '__main__':
     #color_grad_thresh = image_manipulation.color_and_gradient_threshold(undistorted_image)
 
     # Warp image (perspective transform)
-    top_left = [7/16*width, 6/10*height]
-    top_right = [9/16*width, 6/10*height]
-    bottom_left = [1/16*width, 9/10*height]
-    bottom_right = [15/16*width, 9/10*height]
+    #top_left = [520, 500] # [7/16*width, 6/10*height]
+    top_left = [594, 450] # [7/16*width, 6/10*height]
+    #top_right = [768, 500] # [9/16*width, 6/10*height]
+    top_right = [687, 450] # [9/16*width, 6/10*height]
+    bottom_left = [262, 670] # [1/16*width, 9/10*height]
+    bottom_right = [1044, 670] #[15/16*width, 9/10*height]
     src_points = np.float32([top_left, top_right, bottom_left, bottom_right])
     dst_points = np.float32([
-        [1/16*width, 0/10*height], # top left
-        [15/16*width, 0/10*height], # top right
-        [1/16*width, 10/10*height], # bottom left
-        [15/16*width, 10/10*height]  # bottom right
+        [3/16*width, 3/10*height], # top left
+        [13/16*width, 3/10*height], # top right
+        [3/16*width, 10/10*height], # bottom left
+        [13/16*width, 10/10*height]  # bottom right
     ])
     print(src_points)
     print(dst_points)

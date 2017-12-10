@@ -10,7 +10,7 @@ def sobel(gray, direction):
 
 
 # From the Udacity Advanced Lane Finding lectures
-def abs_sobel_thresh(img, orient='x', sobel_kernel=3, thresh_min=0, thresh_max=255):
+def abs_sobel_thresh(img, orient='x', sobel_kernel=3, thresh=(0,255)):
     # Apply the following steps to img
     # 1) Convert to grayscale
     gray = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
@@ -26,7 +26,7 @@ def abs_sobel_thresh(img, orient='x', sobel_kernel=3, thresh_min=0, thresh_max=2
     # 5) Create a mask of 1's where the scaled gradient magnitude
     # is > thresh_min and < thresh_max
     sobel_binary = np.zeros_like(scaled_sobel)
-    sobel_binary[(scaled_sobel >= thresh_min) & (scaled_sobel <= thresh_max)] = 1
+    sobel_binary[(scaled_sobel >= thresh[0]) & (scaled_sobel <= thresh[1])] = 1
     # 6) Return this mask as your binary_output image
     return sobel_binary
 
@@ -80,13 +80,30 @@ def hls_select(img, thresh=(0, 255)):
     # 1) Convert to HLS color space
     hls = cv2.cvtColor(img, cv2.COLOR_RGB2HLS)
     # 2) Apply a threshold to the S channel
-    H = hls[:,:,0]
-    L = hls[:,:,1]
+    #H = hls[:,:,0]
+    #L = hls[:,:,1]
     S = hls[:,:,2]
     binary = np.zeros_like(S)
     binary[(S > thresh[0]) & (S <= thresh[1])] = 1
     # 3) Return a binary image of threshold result
     return binary
+
+
+def yellow_lines_RGB(image):
+    color_select_img = np.copy(image)
+    red_threshold = 220
+    green_threshold = 180
+    blue_threshold = 40
+
+    # Identify pixels below the threshold. Black 'em out
+    colour_thresholds = (image[:,:,0] < red_threshold) | \
+                 (image[:,:,1] < green_threshold) | \
+                 (image[:,:,2] < blue_threshold)
+    color_select_img[colour_thresholds] = [0,0,0]
+    color_select_img = cv2.cvtColor(color_select_img, cv2.COLOR_RGB2GRAY)
+    slice = color_select_img[:,:] > 0
+    color_select_img[slice] = 255
+    return color_select_img
 
 
 def color_and_gradient_threshold(img):
@@ -98,6 +115,7 @@ def color_and_gradient_threshold(img):
     # Grayscale image
     # NOTE: we already saw that standard grayscaling lost color information for the lane lines
     # Explore gradients in other colors spaces / color channels to see what might work better
+    yellow_white_lines = yellow_lines_RGB(img)
     gray = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
 
     # Sobel x
@@ -108,22 +126,22 @@ def color_and_gradient_threshold(img):
     # Threshold x gradient
     thresh_min = 20
     thresh_max = 100
-    sxbinary = np.zeros_like(scaled_sobel)
-    sxbinary[(scaled_sobel >= thresh_min) & (scaled_sobel <= thresh_max)] = 1
+    sobel_x_binary = np.zeros_like(scaled_sobel)
+    sobel_x_binary[(scaled_sobel >= thresh_min) & (scaled_sobel <= thresh_max)] = 1
 
     # Threshold color channel
-    s_thresh_min = 170
+    s_thresh_min = 115
     s_thresh_max = 255
     s_binary = np.zeros_like(s_channel)
     s_binary[(s_channel >= s_thresh_min) & (s_channel <= s_thresh_max)] = 1
 
     # Stack each channel to view their individual contributions in green and blue respectively
     # This returns a stack of the two binary images, whose components you can see as different colors
-    color_binary = np.dstack((np.zeros_like(sxbinary), sxbinary, s_binary)) * 255
+    color_binary = np.dstack((yellow_white_lines/255, sobel_x_binary, s_binary)) * 255
 
     # Combine the two binary thresholds
-    combined_binary = np.zeros_like(sxbinary)
-    combined_binary[(s_binary == 1) | (sxbinary == 1)] = 1
+    combined_binary = np.zeros_like(sobel_x_binary)
+    combined_binary[(s_binary == 1) | (sobel_x_binary == 1)] = 1
 
 
 def whiteLinesMask(image):
