@@ -13,6 +13,7 @@ on top of the video stream.
 
 ## Files of interest
 - images in the [camera_cal folder](./camera_cal) used in the camera calibration process
+- images in the [examples folder](./examples) some used in this writeup, many more available
 - [calibration_util.py](./calibration_util.py) - calibration utilities and functions
 - [image_manipulation.py](./image_manipulation.py) - image manipulation, gradient and color thresholds
 - [line_util.py](./line_util.py) - lane line detection and other stuff, some code is not used yet
@@ -121,8 +122,11 @@ marked with a yellow line. The left and right lane line are not described by a s
  The red area represents all the approximated 
 left line points (pixels), and the blue area represents all the right line points (pixels).
 
+### Calculating curvature and deviation from the lane center
 The lanes in yellow are plotted in pixel space. To detect the curvature of the road in 
-this project, however, we must transform the lines into world points, using two parameters:
+this project, however, we must transform the lines into world points and calculate 
+the lane curvature and the car's deviation from the middle of the lane, using two 
+additional parameters:
 - lane width, which is 3,7m according to US regulations 
 (and is hereby considered constant throughout the video),
 - lane length in the area enclosed with the source points prior to warping the image (30m).
@@ -130,7 +134,8 @@ this project, however, we must transform the lines into world points, using two 
 The math behind the calculations can be found 
 [on the web](https://www.intmath.com/applications-differentiation/8-radius-curvature.php),
 as suggested in the Udacity lectures. The calculations can be found in code,
- lines 160:180 in the file [line_util.py](./line_util.py).
+ lines 160:187 in the file [line_util.py](./line_util.py). The resulting numbers are 
+ overlaid on top of each frame for easy inspection.
 
 ### Marking the lane
 
