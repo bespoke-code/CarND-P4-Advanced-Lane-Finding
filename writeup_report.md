@@ -85,7 +85,7 @@ in the Udacity lectures. Here is an example of a successful image warping (showi
 After successful calibration, the next logical step would be to extract the lane lines
 from an image. To do this successfully, I implemented a combined magnitude and directional 
 gradient filter, as well as some color filtering. The functions used can be found inside 
-[image_manipulation.py, lines 143:207](./image_manipulation.py) and in the [filters jupyter notebook](./filters.ipynb)
+[image_manipulation.py, lines 143:207](./image_manipulation.py) and in the [filters jupyter notebook](./filters.ipynb).
 
 An image mask is defined for each frame using the process_frame function defined in 
 [image_manipulation.py, starting at line 209](./image_manipulation.py). Here's an example 
@@ -114,13 +114,45 @@ Some blurring is done prior to (some of) the filtering steps to smooth the outpu
 ![detected lane lines](./examples/detected_lane_lines_mask_test2.jpg)
 
 Given above is an image of the left and right lane lines detected using the pipeline.
-The lane lines fitted using a second-order polynomial function `Ax + By + C` are 
-marked with a yellow line. The red area represents all the approximated 
+The lane lines fitted using a second-order polynomial functions `Ax + By + C` are 
+marked with a yellow line. The left and right lane line are not described by a single 
+ equation, but have separate polynomial coefficients. 
+ 
+ The red area represents all the approximated 
 left line points (pixels), and the blue area represents all the right line points (pixels).
 
-how and where in code you calculate lane radius and vehicle position
+The lanes in yellow are plotted in pixel space. To detect the curvature of the road in 
+this project, however, we must transform the lines into world points, using two parameters:
+- lane width, which is 3,7m according to US regulations 
+(and is hereby considered constant throughout the video),
+- lane length in the area enclosed with the source points prior to warping the image (30m).
 
-result plotted back on the road w/ lane area identified
+The math behind the calculations can be found 
+[on the web](https://www.intmath.com/applications-differentiation/8-radius-curvature.php),
+as suggested in the Udacity lectures. The calculations can be found in code,
+ lines 160:180 in the file [line_util.py](./line_util.py).
+
+### Marking the lane
+
+The lane lines form a polygon on the warped image, formed by the lane lines and the top and bottom edge of 
+the image. [Lines 258:278 in this file](./image_manipulation.py) do the transformations 
+needed to do the inverse transformation and overlay the marked lane on top of an image.
+
+![detected lane lines](./examples/projected_poly_lane_lines_mask_test2.jpg)
+
+An example of a transformed lane marking ready to be overlaid on a video frame.
+
+### Final results
+
+![results plotted back over the road](./examples/overlay_poly_lane_lines_test2.jpg)
+
+The final result given here shows an image with the marked lane overlaid on top.
+We can clearly see that the lane is calculated well on the image, and the curvature is 
+noticeable and taken into account. 
+
+All systems can be considered to be working properly.
+
+---
 
 ## Pipeline (video)
 
@@ -131,6 +163,11 @@ The steps taken in the video frame processing are the same as discussed in the p
 
 A resulting video file showing the pipeline performance 
  can be found [here](./generated_project_video.mp4).
+ 
+ A video frame overlaid with all the information is presented below.
+ 
+ ![video frame](./examples/final_overlaid.jpg)
+
 
 ---
 
@@ -161,3 +198,8 @@ compact way to access line information. [Some steps in lines 8:73 here](./line_u
 are taken to adress this, but aren't fully implemented yet.
 - A line approximation can be made using a weighted average of the last N lane detections 
 to smoothe-out the output in less-than-desireable conditions.
+- Color-coding the lane overlay can give us information about the state of the image pipeline, 
+for example - red can alarm for high uncertainty or a need for reinitialization, yellow can 
+suggest that the pipeline relies on past N measurements because the frame/s was/were 
+bad or the measurements were deviating from the previous ones by a large margin, and 
+green can show that the pipeline is working with no issues whatsoever.

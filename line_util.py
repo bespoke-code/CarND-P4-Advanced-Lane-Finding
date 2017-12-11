@@ -175,6 +175,16 @@ def do_line_search(image_mask, follow_previous_lines):
         2 * right_fit_cr[0])
     # Now our radius of curvature is in meters
     # Example values: 632.1 m    626.2 m
+
+    left_line_bottom = left_fit[0] * y_eval ** 2 + left_fit[1] * y_eval + left_fit[2]
+    right_line_bottom = right_fit[0] * y_eval ** 2 + right_fit[1] * y_eval + right_fit[2]
+
+    image_center = 1280 / 2
+    lane_center = int((right_line_bottom - left_line_bottom) / 2. + left_line_bottom)
+    dist_center = lane_center - image_center
+    dist_center *= xm_per_pix # in meters. Negative numbers represent our vehicle being closer to the right lane line,
+                                # while positive numbers represent the vehicle deviating to the left of the lane.
+
     # TODO: Use line class to return left and right lines
-    return left_fit, right_fit, ploty, left_fitx, right_fitx
+    return left_fit, right_fit, ploty, left_fitx, right_fitx, left_curverad, dist_center
     #return Line(left_fit, left_fitx, ), Line()

@@ -255,7 +255,7 @@ def processFrame(frame):
 
 
 #def frameOverlay(frame, left_line, right_line, width=1280, height=720, color=(0, 255, 0)):
-def frameOverlay(frame, left_fitx_p, right_fitx_p, ploty, width=1280, height=720, color=(0, 255, 0)):
+def frameOverlay(frame, left_fitx_p, right_fitx_p, ploty, left_curvature, distance, width=1280, height=720, color=(0, 255, 0)):
     # Create an image to draw the lines on
     warp_zero = np.zeros_like(frame[:, :, 1]).astype(np.uint8)
     color_warp = np.dstack((warp_zero, warp_zero, warp_zero))
@@ -274,4 +274,9 @@ def frameOverlay(frame, left_fitx_p, right_fitx_p, ploty, width=1280, height=720
     newwarp = cv2.warpPerspective(color_warp, getUnwarpMatrix(), (width, height))
     # Combine the result with the original image
     result = cv2.addWeighted(frame, 1, newwarp, 0.5, 0)
+    font = cv2.FONT_HERSHEY_PLAIN
+    cv2.putText(result, 'Left lane radius: ' + str(left_curvature) + 'm', (30, 50), font, 1.7, (255, 255, 255), 2,
+                cv2.LINE_AA)
+    cv2.putText(result, 'Distance to lane center: ' + str(distance * 100) + 'cm', (30, 80), font, 1.7, (255, 255, 255),
+                2, cv2.LINE_AA)
     return result

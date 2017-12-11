@@ -60,7 +60,7 @@ def process_image(frame):
     # 4. Use the mask to find the lane lines.
     follow_previous_lines = ((bad_frames_count < 3) and (need_init==False))
     #left_line, right_line = line_util.do_line_search(mask, follow_previous_lines)
-    left_line, right_line, ploty, left_fitx, right_fitx = line_util.do_line_search(mask, True)
+    left_line, right_line, ploty, left_fitx, right_fitx, left_curverad, dist_center = line_util.do_line_search(mask, True)
 
     # 5. Sanity check: Are the detected lane lines OK?
     # Performed on the premise that the lines will deviate
@@ -103,7 +103,7 @@ def process_image(frame):
             status_color = (255, 255, 0)
     status_color = (0, 255, 0)
     #overlay = image_manipulation.frameOverlay(frame, previous_left, previous_right, width=frame.shape[1], height=frame.shape[0], color=status_color)
-    overlay = image_manipulation.frameOverlay(frame, left_fitx, right_fitx, ploty, width=frame.shape[1], height=frame.shape[0], color=status_color)
+    overlay = image_manipulation.frameOverlay(frame, left_fitx, right_fitx, ploty, left_curverad, dist_center, width=frame.shape[1], height=frame.shape[0], color=status_color)
     return overlay
 
 
