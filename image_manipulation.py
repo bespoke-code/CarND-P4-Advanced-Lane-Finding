@@ -216,7 +216,7 @@ def processFrame(frame):
     dist_coeffs = calib.getDistortionCoeffs()
     warp_matrix = getWarpMatrix()
 
-    image = cv2.undistort(frame, np.array(camera_matrix), np.array(dist_coeffs), None, np.array(camera_matrix))
+    image = cv2.undistort(frame, camera_matrix, dist_coeffs, None, camera_matrix)
     image = warp_image(image, warp_matrix)
     color_mask = cv2.add(yellow_lines_RGB(image), white_lines_RGB(image))
     color_mask[color_mask > 0] = 255
