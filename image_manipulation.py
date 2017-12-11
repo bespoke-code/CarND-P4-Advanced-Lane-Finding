@@ -257,9 +257,7 @@ def processFrame(frame):
 #def frameOverlay(frame, left_line, right_line, width=1280, height=720, color=(0, 255, 0)):
 def frameOverlay(frame, left_fitx_p, right_fitx_p, ploty, width=1280, height=720, color=(0, 255, 0)):
     # Create an image to draw the lines on
-    #warp_zero = np.zeros((width, height), dtype=np.uint8)
     warp_zero = np.zeros_like(frame[:, :, 1]).astype(np.uint8)
-    #warp_zero = np.zeros_like(warped).astype(np.uint8)
     color_warp = np.dstack((warp_zero, warp_zero, warp_zero))
 
     # Recast the x and y points into usable format for cv2.fillPoly()
