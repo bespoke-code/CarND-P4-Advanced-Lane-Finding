@@ -9,12 +9,6 @@ class Line():
     def __init__(self):
         # was the line detected in the last iteration?
         self.detected = False
-        # x values of the last n fits of the line
-        self.recent_xfitted = []
-        # average x values of the fitted line over the last n iterations
-        self.bestx = None
-        # polynomial coefficients averaged over the last n iterations
-        self.best_fit = None
         # polynomial coefficients for the most recent fit
         self.current_fit = [np.array([False])]
         # radius of curvature of the line in some units
@@ -23,58 +17,85 @@ class Line():
         self.line_base_pos = None
         # difference in fit coefficients between last and new fits
         self.diffs = np.array([0,0,0], dtype='float')
-        # x values for detected line pixels
-        self.allx = None
-        #y values for detected line pixels
-        self.ally = None
-        # TODO: Define these. See image_manip polygon fill for more
-        self.ploty = []
-        self.fitx = []
+        # x values for detected line pixels (fitx)
+        self.x = None
+        #y values for detected line pixels (ploty)
+        self.y = None
 
 
-class LineQueue():
-    def __init__(self, capacity=5):
-        self.left_line_queue = Queue(capacity)
-        self.right_line_queue = Queue(capacity)
-        self.capacity = capacity
+class LineSanitizer:
+    """
+    Holds a queue of lane line polynomials. Can calculate average new line polynomials.s
+    """
+    weights = [0.1, 0.1, 0.15, 0.3, 0.35]  # used for weighed average calculation
+    ym_per_pix = 30. / 720.  # meters per pixel in y dimension
+    xm_per_pix = 3.7 / 640.
+    ploty = None
 
-        self.last_right_OK = False
-        self.last_left_OK = False
+    def __init__(self, width, height):
+        self.line_queue = []
+        self.capacity = 5
+        self.curr_count = 0  # left = index 0, right = index
+        self.ploty = np.linspace(0, height - 1, width)
+        print('ploty dimensions: ', self.ploty.shape)
 
-    def last_good_left_line(self):
-        # TODO: calculate last good left measurement.
-        pass
+    def calculate_new_line(self):
+        return np.average(self.line_queue, axis=0)  #, weights=self.weights[-1*self.curr_count:])
 
-    def last_good_right_line(self):
-        # TODO: calculate last good left measurement.
-        pass
+    def _slope(self, new_line):
+        """
+        Calculates approximate slope of a lane line.
+        :param new_line: Quadratic coefficients for the line.
+        :return: A slope angle value in [rad]
+        """
+        y_eval = np.min(self.ploty)
+        line_top = new_line[0] * y_eval**2 + new_line[1] * y_eval + new_line[2]
+        y_eval = np.max(self.ploty)
+        line_bottom = new_line[0] * y_eval**2 + new_line[1] * y_eval + new_line[2]
+        return np.arctan((line_bottom - line_top)/(y_eval - np.min(self.ploty)))
 
-    def add_line(self, newLine, isLeft=True):
-        if isLeft:
-            self.left_line_queue.put(newLine)
+    def is_similar(self, new_line):
+        print(np.round(self._slope(new_line) - self._slope(self.calculate_new_line()), 3))
+        return np.abs(self._slope(new_line) - self._slope(self.calculate_new_line())) < 0.05
+
+    def add(self, new_line_polyfit):
+        """
+        Checks a line and adds it to the list if the sanity check is good.
+        :param new_line_polyfit: the new line's quadratic equation.
+        :return: True if the line is added to the queue, or false
+        if it isn't good and is therefore not added to the queue.
+        """
+        if self.curr_count == 0:
+            self.line_queue.append(new_line_polyfit)
+            self.curr_count += 1
+            return True
+
+        if self.is_similar(new_line_polyfit):
+            if self.curr_count == self.capacity:
+                self.line_queue.pop(0)
+                self.curr_count -= 1
+            self.line_queue.append(new_line_polyfit)
+            self.curr_count += 1
+            return True
         else:
-            self.right_line_queue.put(newLine)
+            return False
 
-    def sanitize(self, left_line, right_line):
-        pass
-        # TODO: finish code here. check if deviation is too big (use arctg and curve radius)
-        # Left line
-        criteria_pass_left = True
-        # Right line
-        criteria_pass_right = True
-
-        if criteria_pass_left:
-            # Line is OK!
-            self.add_line(left_line, True)
-
-        if criteria_pass_right:
-            self.add_line(right_line, False)
-
-        return self.last_good_left_line(), self.last_good_right_line()
+    def get_last(self, last_line_ok=False):
+        if last_line_ok:
+            poly = self.line_queue[-1]
+            fitx = poly[0] * self.ploty**2 + poly[1] * self.ploty + poly[2]
+        else:
+            poly = self.calculate_new_line()
+            fitx = poly[0] * self.ploty ** 2 + poly[1] * self.ploty + poly[2]
+        return poly, fitx
 
 
-def do_line_search(image_mask, follow_previous_lines):
+def do_line_search(image_mask, known_left_fit=None, known_right_fit=None, follow_previous_lines=False):
     # Udacity code here, adapted to fit the project's needs
+
+    # Check to avoid stupidity
+    if known_left_fit is None or known_right_fit is None and follow_previous_lines:
+        follow_previous_lines = False
 
     if not follow_previous_lines:
         # Take a histogram of the bottom half of the image
@@ -139,11 +160,11 @@ def do_line_search(image_mask, follow_previous_lines):
         nonzeroy = np.array(nonzero[0])
         nonzerox = np.array(nonzero[1])
         margin = 100
-        left_lane_inds = ((nonzerox > (left_fit[0] * (nonzeroy ** 2) + left_fit[1] * nonzeroy + left_fit[2] - margin)) &
-                          (nonzerox < (left_fit[0] * (nonzeroy ** 2) + left_fit[1] * nonzeroy + left_fit[2] + margin)))
+        left_lane_inds = ((nonzerox > (known_left_fit[0] * (nonzeroy ** 2) + known_left_fit[1] * nonzeroy + known_left_fit[2] - margin)) &
+                          (nonzerox < (known_left_fit[0] * (nonzeroy ** 2) + known_left_fit[1] * nonzeroy + known_left_fit[2] + margin)))
 
-        right_lane_inds = ((nonzerox > (right_fit[0] * (nonzeroy ** 2) + right_fit[1] * nonzeroy + right_fit[2] - margin)) &
-                           (nonzerox < (right_fit[0] * (nonzeroy ** 2) + right_fit[1] * nonzeroy + right_fit[2] + margin)))
+        right_lane_inds = ((nonzerox > (known_right_fit[0] * (nonzeroy ** 2) + known_right_fit[1] * nonzeroy + known_right_fit[2] - margin)) &
+                           (nonzerox < (known_right_fit[0] * (nonzeroy ** 2) + known_right_fit[1] * nonzeroy + known_right_fit[2] + margin)))
 
     # Extract left and right line pixel positions
     leftx = nonzerox[left_lane_inds]
@@ -189,6 +210,4 @@ def do_line_search(image_mask, follow_previous_lines):
     dist_center *= xm_per_pix  # in meters. Negative numbers represent our vehicle being closer to the right lane line,
                                # while positive numbers represent the vehicle deviating to the left of the lane.
 
-    # TODO: Use line class to return left and right lines
-    return left_fit, right_fit, ploty, left_fitx, right_fitx, left_curverad, dist_center
-    #return Line(left_fit, left_fitx, ), Line()
+    return left_fit, right_fit, ploty, left_fitx, right_fitx, np.round(left_curverad, 3), np.round(dist_center, 4)

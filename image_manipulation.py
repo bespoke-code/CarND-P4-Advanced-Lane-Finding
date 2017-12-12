@@ -261,9 +261,7 @@ def frameOverlay(frame, left_fitx_p, right_fitx_p, ploty, left_curvature, distan
     color_warp = np.dstack((warp_zero, warp_zero, warp_zero))
 
     # Recast the x and y points into usable format for cv2.fillPoly()
-    #pts_left = np.array([np.transpose(np.vstack([left_line.fitx, left_line.ploty]))])
     pts_left = np.array([np.transpose(np.vstack([left_fitx_p, ploty]))])
-    #pts_right = np.array([np.flipud(np.transpose(np.vstack([right_line.fitx, right_line.ploty])))])
     pts_right = np.array([np.flipud(np.transpose(np.vstack([right_fitx_p, ploty])))])
     pts = np.hstack((pts_left, pts_right))
 
