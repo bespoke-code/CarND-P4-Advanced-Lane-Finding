@@ -34,7 +34,7 @@ class LineSanitizer:
 
     def __init__(self, width, height):
         self.line_queue = []
-        self.capacity = 5
+        self.capacity = 3
         self.curr_count = 0  # left = index 0, right = index
         self.ploty = np.linspace(0, height - 1, width)
         print('ploty dimensions: ', self.ploty.shape)
@@ -55,7 +55,7 @@ class LineSanitizer:
         return np.arctan((line_bottom - line_top)/(y_eval - np.min(self.ploty)))
 
     def is_similar(self, new_line):
-        print(np.round(self._slope(new_line) - self._slope(self.calculate_new_line()), 3))
+        #print(np.round(self._slope(new_line) - self._slope(self.calculate_new_line()), 3))
         return np.abs(self._slope(new_line) - self._slope(self.calculate_new_line())) < 0.05
 
     def add(self, new_line_polyfit):

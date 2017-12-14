@@ -1,7 +1,12 @@
 import cv2
 import numpy as np
 import calibration_util as calib
+from matplotlib import pyplot as plt
+from scipy import stats
 
+
+lane_width = 680
+deviation = 50
 
 # Perspective transformations
 #######################################################################
@@ -145,13 +150,44 @@ def sobel_select(img, thresh=(20, 100)):
 # Define a function that thresholds the S-channel of HLS
 # Use exclusive lower bound (>) and inclusive upper (<=)
 def hls_select(img, thresh=(0, 255)):
+    global lane_width
+    global deviation
     # 1) Convert to HLS color space
     hls = cv2.cvtColor(img, cv2.COLOR_RGB2HLS)
     # 2) Apply a threshold to the S channel
     S = hls[:,:,2]
     binary = np.zeros_like(S)
     binary[(S > thresh[0]) & (S <= thresh[1])] = 1
+    histogram_lower_half = np.sum(binary[np.int(binary.shape[0] // 2):, :], axis=0)
+    histogram_upper_half = np.sum(binary[:np.int(binary.shape[0] // 2), :], axis=0)
+
+    midpoint = np.int(histogram_lower_half.shape[0] / 2)
+    leftx_base_low = np.argmax(histogram_lower_half[:midpoint])
+    rightx_base_low = np.argmax(histogram_lower_half[midpoint:]) + midpoint
+
+    leftx_base_top = np.argmax(histogram_upper_half[:midpoint])
+    rightx_base_top = np.argmax(histogram_upper_half[midpoint:]) + midpoint
+
+    # The S layer can be problematic when big light spots pass
+    # in the middle of the road among neighboring shadows.
+    # Here we assume the lane points to see if a lane's width is OK
+    bottom_bad = False
+    top_bad = False
+    if (rightx_base_low - leftx_base_low <= lane_width - deviation) or \
+        (rightx_base_low - leftx_base_low >= lane_width + deviation):
+        bottom_bad = True
+
+    if (rightx_base_top - leftx_base_top <= lane_width - deviation) or \
+    (rightx_base_top - leftx_base_top >= lane_width + deviation):
+        top_bad = True
+
+    #print('lane is now',rightx_base_low - leftx_base_low, 'to', rightx_base_top - leftx_base_top, 'wide')
+
     # 3) Return a binary image of threshold result
+    # If the lane width does not seem right, out goes an empty mask!
+    if top_bad or bottom_bad:
+        binary = np.zeros_like(S)
+
     return binary
 
 
@@ -212,6 +248,7 @@ def processFrame(frame):
     :param frame: A video frame or an RGB camera image.
     :return: A mask showing the lane lines on the road image.
     """
+    kernel = np.ones((3, 3), np.uint8)
     camera_matrix = calib.getCameraCalibration()
     dist_coeffs = calib.getDistortionCoeffs()
     warp_matrix = getWarpMatrix()
@@ -220,6 +257,7 @@ def processFrame(frame):
     image = warp_image(image, warp_matrix)
     color_mask = cv2.add(yellow_lines_RGB(image), white_lines_RGB(image))
     color_mask[color_mask > 0] = 255
+    color_mask = cv2.morphologyEx(color_mask, cv2.MORPH_OPEN, kernel)
 
     sobel_mask = cv2.add(
         combined_sobel(
@@ -237,7 +275,6 @@ def processFrame(frame):
     )
     sobel_mask[sobel_mask > 0] = 255
 
-    kernel = np.ones((3, 3), np.uint8)
     sobel_mask = cv2.erode(sobel_mask, kernel, iterations=1)
     sobel_mask = cv2.morphologyEx(sobel_mask, cv2.MORPH_OPEN, kernel)
 
