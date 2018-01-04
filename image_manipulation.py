@@ -191,6 +191,27 @@ def hls_select(img, thresh=(0, 255)):
     return binary
 
 
+def lines_CMYK(image):
+    if np.max(image[:,:,2]) > 1:
+        image = image/255.
+
+    # As seen at https://www.rapidtables.com/convert/color/rgb-to-cmyk.html
+    b = image[:, :, 2]
+    k = 1 - image.max(axis=2)
+    y = (1.000001 - b - k) / (1.000001 - k)
+
+    y_select = (y*255.) > 90.
+    y_select_false_positive = (y * 255.) >= 252.
+    k_select = (k*255.) < 50.
+
+    yk_mask = np.zeros_like(k, dtype=np.uint8)
+    yk_mask[y_select] = 255
+    yk_mask[y_select_false_positive] = 0
+    yk_mask[k_select] = 255
+
+    return yk_mask
+
+
 # Yellow lane lines extraction
 def yellow_lines_RGB(image):
     color_select_img = np.copy(image)
@@ -255,6 +276,7 @@ def processFrame(frame):
 
     image = cv2.undistort(frame, camera_matrix, dist_coeffs, None, camera_matrix)
     image = warp_image(image, warp_matrix)
+    #color_mask = yellow_lines_RGB(image)
     color_mask = cv2.add(yellow_lines_RGB(image), white_lines_RGB(image))
     color_mask[color_mask > 0] = 255
     color_mask = cv2.morphologyEx(color_mask, cv2.MORPH_OPEN, kernel)
@@ -278,16 +300,18 @@ def processFrame(frame):
     sobel_mask = cv2.erode(sobel_mask, kernel, iterations=1)
     sobel_mask = cv2.morphologyEx(sobel_mask, cv2.MORPH_OPEN, kernel)
 
-    hls_mask = hls_select(cv2.blur(image, (9, 9)), thresh=(115, 255))
-    hls_mask[hls_mask > 0] = 255
+    cmyk_mask = lines_CMYK(image)
+    #hls_mask = hls_select(cv2.blur(image, (9, 9)), thresh=(115, 255))
+    #hls_mask[hls_mask > 0] = 255
 
-    result_mask = np.zeros_like(hls_mask)
+    result_mask = np.zeros_like(color_mask)
     result_mask[sobel_mask > 0] = 255
-    result_mask[hls_mask > 0] = 255
+    #result_mask[hls_mask > 0] = 255
     result_mask[color_mask > 0] = 255
-    result_mask[:, result_mask.shape[1] - 100:result_mask.shape[1]] = 0
-    result_mask[:, :200] = 0
-    result_mask[500:result_mask.shape[0], 450:900] = 0
+    result_mask[cmyk_mask > 0] = 255
+    #result_mask[:, result_mask.shape[1] - 100:result_mask.shape[1]] = 0
+    #result_mask[:, :200] = 0
+    #result_mask[500:result_mask.shape[0], 450:900] = 0
     return result_mask
 
 

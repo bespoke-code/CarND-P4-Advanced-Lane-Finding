@@ -5,6 +5,7 @@ import calibration_util as calib
 import line_util
 from moviepy.editor import VideoFileClip
 import plots_util
+from matplotlib import pyplot as plt
 
 # Global parameters for use
 first_frame = True
@@ -17,6 +18,7 @@ bad_frames_count = 0
 need_init = True
 last_frame_good = False
 successive_good_frames = 0
+frame_no = 0
 
 # Line queue. Holds line measurements for smoothing out video output
 left_line_queue = line_util.LineSanitizer(720, 1280)
@@ -35,6 +37,7 @@ def process_image(frame):
     global successive_good_frames
     global left_line_queue
     global right_line_queue
+    global frame_no
     # Full processing pipeline
     ###################################################################
     # Get calibration parameters.
@@ -58,13 +61,16 @@ def process_image(frame):
     #   - filter out the lines from the image
     #   - return a mask to find the lane lines on
     mask = image_manipulation.processFrame(frame)
+    plt.imsave('/home/andrej/git/CarND-P4-Advanced-Lane-Finding/temp/mask_'+str(frame_no).zfill(5) + '.jpg', arr=np.dstack((mask, mask, mask)), format='jpg')
+    frame_no += 1
 
     # 4. Use the mask to find the lane lines.
-    follow_previous_lines = ((bad_frames_count < 2) and (need_init==False))
+    #follow_previous_lines = ((bad_frames_count < 2) and (need_init==False))
+    follow_previous_lines = False
 
     if first_frame:
         left_line, right_line, ploty, left_fitx, right_fitx, left_curverad, dist_center = \
-            line_util.do_line_search(mask, None, None, True)
+            line_util.do_line_search(mask, None, None, False)
         first_frame = False
     else:
         left_line, left_fitx = left_line_queue.get_last(follow_previous_lines)
@@ -78,7 +84,9 @@ def process_image(frame):
     # only a small amount in successive frames.
     # Outliers are neutralized
     left_line_ok = left_line_queue.add(left_line)
+    #left_line_ok = True
     right_line_ok = right_line_queue.add(right_line)
+    #right_line_ok = True
 
     if left_line_ok and right_line_ok:
         successive_good_frames += 1
@@ -101,10 +109,10 @@ def process_image(frame):
         if bad_frames_count >= 2:
             need_init = True
 
-    if not left_line_ok:
-        left_line, left_fitx = left_line_queue.get_last()
-    if not right_line_ok:
-        right_line, right_fitx = right_line_queue.get_last()
+    #if not left_line_ok:
+    #    left_line, left_fitx = left_line_queue.get_last()
+    #if not right_line_ok:
+    #    right_line, right_fitx = right_line_queue.get_last()
 
     # 6. Draw lines and colour-fill polygon
     #   - Inverse transform to original perspective

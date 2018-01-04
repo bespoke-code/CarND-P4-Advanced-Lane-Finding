@@ -40,7 +40,8 @@ class LineSanitizer:
         print('ploty dimensions: ', self.ploty.shape)
 
     def calculate_new_line(self):
-        return np.average(self.line_queue, axis=0)  #, weights=self.weights[-1*self.curr_count:])
+        #return np.average(self.line_queue, axis=0)  #, weights=self.weights[-1*self.curr_count:])
+        return self.line_queue[-1]  #, weights=self.weights[-1*self.curr_count:])
 
     def _slope(self, new_line):
         """
