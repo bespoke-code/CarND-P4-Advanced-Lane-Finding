@@ -61,12 +61,12 @@ def process_image(frame):
     #   - filter out the lines from the image
     #   - return a mask to find the lane lines on
     mask = image_manipulation.processFrame(frame)
-    plt.imsave('/home/andrej/git/CarND-P4-Advanced-Lane-Finding/temp/mask_'+str(frame_no).zfill(5) + '.jpg', arr=np.dstack((mask, mask, mask)), format='jpg')
+    #plt.imsave('/home/andrej/git/CarND-P4-Advanced-Lane-Finding/temp/mask_'+str(frame_no).zfill(5) + '.jpg', arr=np.dstack((mask, mask, mask)), format='jpg')
     frame_no += 1
 
     # 4. Use the mask to find the lane lines.
-    #follow_previous_lines = ((bad_frames_count < 2) and (need_init==False))
-    follow_previous_lines = False
+    follow_previous_lines = ((bad_frames_count < 4) and (need_init is False))
+    #follow_previous_lines = False
 
     if first_frame:
         left_line, right_line, ploty, left_fitx, right_fitx, left_curverad, dist_center = \
@@ -77,7 +77,7 @@ def process_image(frame):
         right_line, right_fitx = right_line_queue.get_last(follow_previous_lines)
 
         left_line, right_line, ploty, left_fitx, right_fitx, left_curverad, dist_center = \
-            line_util.do_line_search( mask, left_line, right_line, False)
+            line_util.do_line_search( mask, left_line, right_line, follow_previous_lines)
 
     # 5. Sanity check: Are the detected lane lines OK?
     # Performed on the premise that the lines will deviate
@@ -106,13 +106,13 @@ def process_image(frame):
         bad_frames_count += 1
         successive_good_frames = 0
         last_frame_good = False
-        if bad_frames_count >= 2:
+        if bad_frames_count >= 5:
             need_init = True
 
-    #if not left_line_ok:
-    #    left_line, left_fitx = left_line_queue.get_last()
-    #if not right_line_ok:
-    #    right_line, right_fitx = right_line_queue.get_last()
+    if not left_line_ok:
+        left_line, left_fitx = left_line_queue.get_last()
+    if not right_line_ok:
+        right_line, right_fitx = right_line_queue.get_last()
 
     # 6. Draw lines and colour-fill polygon
     #   - Inverse transform to original perspective
@@ -127,7 +127,7 @@ if __name__ == '__main__':
     out_dir='./data/'
     output = out_dir+'generated_project_video.mp4'
 
-    clip = VideoFileClip("project_video.mp4").subclip(33,44)
+    clip = VideoFileClip("project_video.mp4") #.subclip(35,43)
     out_clip = clip.fl_image(process_image)
     # 7. Add frame back to video
     #   - Save Video

@@ -201,8 +201,8 @@ def lines_CMYK(image):
     y = (1.000001 - b - k) / (1.000001 - k)
 
     y_select = (y*255.) > 90.
-    y_select_false_positive = (y * 255.) >= 252.
-    k_select = (k*255.) < 50.
+    y_select_false_positive = (y * 255.) >= 250.
+    k_select = (k*255.) < 45.
 
     yk_mask = np.zeros_like(k, dtype=np.uint8)
     yk_mask[y_select] = 255
@@ -276,7 +276,6 @@ def processFrame(frame):
 
     image = cv2.undistort(frame, camera_matrix, dist_coeffs, None, camera_matrix)
     image = warp_image(image, warp_matrix)
-    #color_mask = yellow_lines_RGB(image)
     color_mask = cv2.add(yellow_lines_RGB(image), white_lines_RGB(image))
     color_mask[color_mask > 0] = 255
     color_mask = cv2.morphologyEx(color_mask, cv2.MORPH_OPEN, kernel)
