@@ -38,7 +38,8 @@ dashboard video used for this project are included in the [camera_cal](./camera_
 directory. The set of images was originally provided by Udacity for use in this and other projects.
  The same files can also be found in Udacity's [Advanced Lane Lines project GitHub repository](https://github.com/udacity/CarND-Advanced-Lane-Lines).
 
-The calibration procedure can be seen inside the file [calibration_util.py, lines 53:72](./calibration_util.py).
+The calibration procedure can be seen inside the file [calibration_util.py, lines 53:72](./calibration_util.py). 
+The video frames themselves are calibrated in line 277 inside image_manipulation.py.
 
 An example of the image transformation prior to and after calibration can be seen in the 
 following pair of images:
@@ -86,10 +87,10 @@ in the Udacity lectures. Here is an example of a successful image warping (showi
 After successful calibration, the next logical step would be to extract the lane lines
 from an image. To do this successfully, I implemented a combined magnitude and directional 
 gradient filter, as well as some color filtering. The functions used can be found inside 
-[image_manipulation.py, lines 143:207](./image_manipulation.py) and in the [filters jupyter notebook](./filters.ipynb).
+[image_manipulation.py, lines 148:263](./image_manipulation.py) and in the [filters jupyter notebook](./filters.ipynb).
 
 An image mask is defined for each frame using the process_frame function defined in 
-[image_manipulation.py, starting at line 209](./image_manipulation.py). Here's an example 
+[image_manipulation.py, starting at line 266](./image_manipulation.py). Here's an example 
 of the result after the filtering is done:
 
 ![an example of lane filtering](./examples/lane_lines_mask_test2.jpg)
@@ -97,14 +98,27 @@ of the result after the filtering is done:
 An example of lane extraction on an image. Here, the output is shown in RGB, with 
 stacked layers representing:
 - **R channel**: color filtering (mask)
-- **G channel**: HLS's S-layer filtered lines
+- **G channel**: ~~HLS's S-layer filtered lines~~ Now dropped in favour of Y,K channels from CMYK
 - **B channel**: combined directional and magnitude sobel filter.
+
+After a series of tweaks and tests experimenting with various colour spaces and filtering parameters, I settled on 
+replacing the S-channel filter from HLS with one using the Y and K channels in CMYK. The Y layer is used to extract the 
+yellow line from the road, as it is very clearly seen and can be easily extracted. The K layer can help detect both 
+yellow and white lines - they are presented as deep blacks in the picture given bellow. 
+
+![Y channel from CMYK](./examples/frame182_y.jpg)
+
+The Y channel in CMYK, here shown in grayscale. The yellow component is obviously high for yellow lane lines.
+
+![K channel from CMYK](./examples/frame182_k.jpg)
+
+The K channel in CMYK, here shown in grayscale. Note the deep blacks showing the lane lines.
 
 The image processing pipeline uses a binary image output like this one:
 
 ![black and white lane line mask](./examples/bw_lane_lines_mask_test2.jpg)
 
-Such masks are a result of lines 224:253 as seen in `image_manipulation.py`.
+Such masks are a result of lines 194:250 as seen in `image_manipulation.py`.
 
 **Note that the lane detection is performed on warped images!** It was experimentally 
 concluded that the detection is far better this way, since no other distractions can be 
@@ -134,13 +148,13 @@ additional parameters:
 The math behind the calculations can be found 
 [on the web](https://www.intmath.com/applications-differentiation/8-radius-curvature.php),
 as suggested in the Udacity lectures. The calculations can be found in code,
- lines 160:187 in the file [line_util.py](./line_util.py). The resulting numbers are 
+ lines 190:209 in the file [line_util.py](./line_util.py). The resulting numbers are 
  overlaid on top of each frame for easy inspection.
 
 ### Marking the lane
 
 The lane lines form a polygon on the warped image, formed by the lane lines and the top and bottom edge of 
-the image. [Lines 258:278 in this file](./image_manipulation.py) do the transformations 
+the image. [Lines 315:337 in this file](./image_manipulation.py) do the transformations 
 needed to do the inverse transformation and overlay the marked lane on top of an image.
 
 ![detected lane lines](./examples/projected_poly_lane_lines_mask_test2.jpg)
@@ -166,6 +180,15 @@ The video pipeline is (de facto) an image processing function
 
 The steps taken in the video frame processing are the same as discussed in the previous section.
 
+The processing pipeline also makes use of lane line queues for line sanitation. Code present inside 
+[line_util.py](./line_util.py) defines a Line Queue which can hold up to 5 consecutive good 
+lane line coefficient triplets. 
+
+If the currently detected left and/or right lines deviate a lot (are not similar to the previously detected ones), 
+the current lane line coefficients are replaced with the mean coefficients calculated 
+using the coefficients present inside the queue. This operation is done for both lines, although each line is 
+treated separately. This smoothes the video output and discards badly detected lines, which improves performance.
+
 A resulting video file showing the pipeline performance 
  can be found [here](./generated_project_video.mp4).
  
@@ -185,14 +208,14 @@ overcome and process the input frames with accurate results.
 The proposed pipeline overcomes the problems posed by the changing brightness levels 
 and shadows which are present in the test video, but some issues might arise in different 
 weather and/or lightning conditions:
-- night driving may be highly problematic, as the lines might not be detected by the colour 
+- night driving may be highly problematic, as the lines might not be detected by colour 
 and/or saturation channel filters due to the different lightning conditions.
-- sharp turns in cities and highway exits might prove problematic using the current pipeline.
-Smoothing out the output using a weighted mean of the last N good lane predictions should fix 
-this problem.
+- sharp turns in cities and highway exits might prove problematic using the current pipeline. A different 
+set of points for image warping may mitigate the problem by allowing a bigger road surface to 
+be shown in the warped image. Then, even sharp turns will be properly detected.
 - Real-time video processing might be a challenge as the pipeline is optimized for offline use.
 Real-time processing would require many optimizations in the code, or throwing some things out.
-- Rainy weather might be problematic, as water on the road might reflect light, thus 
+- Rainy weather might be problematic, as water on the road will reflect light, thus 
 tricking the pipeline into thinking there is a line where it isn't, or completely ruining the 
 histogram so lane lines won't be accurately found.
 
@@ -201,8 +224,6 @@ listed here:
 - Lines can be modeled using Object-oriented design practices, providing a cohesive and 
 compact way to access line information. [Some steps in lines 8:73 here](./line_util.py) 
 are taken to adress this, but aren't fully implemented yet.
-- A line approximation can be made using a weighted average of the last N lane detections 
-to smoothe-out the output in less-than-desireable conditions.
 - Color-coding the lane overlay can give us information about the state of the image pipeline, 
 for example - red can alarm for high uncertainty or a need for reinitialization, yellow can 
 suggest that the pipeline relies on past N measurements because the frame/s was/were 

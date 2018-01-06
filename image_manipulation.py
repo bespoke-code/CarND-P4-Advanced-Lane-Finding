@@ -308,9 +308,6 @@ def processFrame(frame):
     #result_mask[hls_mask > 0] = 255
     result_mask[color_mask > 0] = 255
     result_mask[cmyk_mask > 0] = 255
-    #result_mask[:, result_mask.shape[1] - 100:result_mask.shape[1]] = 0
-    #result_mask[:, :200] = 0
-    #result_mask[500:result_mask.shape[0], 450:900] = 0
     return result_mask
 
 
