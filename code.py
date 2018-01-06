@@ -61,6 +61,7 @@ def process_image(frame):
     #   - filter out the lines from the image
     #   - return a mask to find the lane lines on
     mask = image_manipulation.processFrame(frame)
+    frame = cv2.undistort(frame, camera_matrix, distort_coeffs, None, camera_matrix)
     #plt.imsave('/home/andrej/git/CarND-P4-Advanced-Lane-Finding/temp/mask_'+str(frame_no).zfill(5) + '.jpg', arr=np.dstack((mask, mask, mask)), format='jpg')
     frame_no += 1
 
