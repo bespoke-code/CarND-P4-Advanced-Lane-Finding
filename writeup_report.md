@@ -58,6 +58,15 @@ We can clearly see that the image is rectified properly:
 all the parallel lines on the chessboard pattern are parallel in the real world 
 and vice versa. No bulging is detected, as in the original photo.
 
+Bellow you can see a frame before and after rectification.
+
+![Frame example](./examples/frame182.jpg)
+
+When rectified, the image is slightly changed in order for the distortion to be removed. Here, a rectified image:
+
+![Rectified frame example, calibrated](./examples/frame182_undist.jpg)
+
+
 ### Perspective transform
 Perspective transform is done prior to the lane finding. I decided to manually specify 
 the points to define the image warping transformation. The points were specified on one of
