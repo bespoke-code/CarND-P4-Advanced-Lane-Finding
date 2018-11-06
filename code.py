@@ -9,11 +9,13 @@ from matplotlib import pyplot as plt
 
 # Global parameters for use
 first_frame = True
-width = 1280
-height = 720
-channels = 3
+width = 1280 # TODO: Parametrize (frame size?)
+height = 720 # TODO: Parametrize (frame size?)
+channels = 3 # TODO: Parametrize (frame size?)
 
 # Some useful parameters here
+# TODO: Explain parameters
+# TODO: Build a settings class/param list
 bad_frames_count = 0
 need_init = True
 last_frame_good = False
@@ -26,6 +28,7 @@ right_line_queue = line_util.LineSanitizer(720, 1280)
 
 
 def process_image(frame):
+    # TODO: Revert globals to parameters (input or sth else?)
     global first_frame
     global width
     global height
@@ -126,9 +129,11 @@ def process_image(frame):
 
 if __name__ == '__main__':
     out_dir='./data/'
-    output = out_dir+'generated_project_video.mp4'
+    output = out_dir+'generated_harder_challenge_video.mp4'
 
-    clip = VideoFileClip("project_video.mp4") #.subclip(35,43)
+    # TODO: Add CLI
+    # TODO: Add single frame output in matplotlib?
+    clip = VideoFileClip("harder_challenge_video.mp4") #.subclip(35,43)
     out_clip = clip.fl_image(process_image)
     # 7. Add frame back to video
     #   - Save Video
