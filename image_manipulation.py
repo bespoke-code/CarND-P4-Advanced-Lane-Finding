@@ -8,6 +8,7 @@ from scipy import stats
 lane_width = 680
 deviation = 50
 
+
 # Perspective transformations
 #######################################################################
 def perspective_warp(width=1280, height=720):
