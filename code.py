@@ -10,18 +10,19 @@ from matplotlib import pyplot as plt
 
 # Global parameters for use
 first_frame = True
-width = 1280 # TODO: Parametrize (frame size?)
-height = 720 # TODO: Parametrize (frame size?)
-channels = 3 # TODO: Parametrize (frame size?)
+width = 1280
+height = 720
+channels = 3
 
 # Some useful parameters here
 # TODO: Explain parameters
-# TODO: Build a settings class/param list
 bad_frames_count = 0
 need_init = True
 last_frame_good = False
 successive_good_frames = 0
 frame_no = 0
+
+undistort = True  # Undistort flag
 
 # Line queue. Holds line measurements for smoothing out video output
 left_line_queue = line_util.LineSanitizer(720, 1280)
@@ -42,12 +43,19 @@ def process_image(frame):
     global left_line_queue
     global right_line_queue
     global frame_no
+
+    global undistort
     # Full processing pipeline
     ###################################################################
     # Get calibration parameters.
     # Full calibration procedure found in calibration_util.py.
+
     camera_matrix = calib.getCameraCalibration()
     distort_coeffs = calib.getDistortionCoeffs()
+    if first_frame and frame.shape[0] == height:
+        # Don't use false matrices to undistort a frame recorded with a (possibly) different camera!
+        # Temporary fix. TODO: Import camera parameters via the CLI
+        undistort = False
 
     # Enter the video processing loop
     #   - Get video, frame by frame.
@@ -65,13 +73,15 @@ def process_image(frame):
     #   - filter out the lines from the image
     #   - return a mask to find the lane lines on
     mask = image_manipulation.processFrame(frame)
-    frame = cv2.undistort(frame, camera_matrix, distort_coeffs, None, camera_matrix)
-    #plt.imsave('/home/andrej/git/CarND-P4-Advanced-Lane-Finding/temp/mask_'+str(frame_no).zfill(5) + '.jpg', arr=np.dstack((mask, mask, mask)), format='jpg')
+
+    if undistort:   # TODO: Set flag via the command line (default: False)
+        frame = cv2.undistort(frame, camera_matrix, distort_coeffs, None, camera_matrix)
+        # plt.imsave('/home/andrej/git/CarND-P4-Advanced-Lane-Finding/temp/mask_'+str(frame_no).zfill(5) + '.jpg', arr=np.dstack((mask, mask, mask)), format='jpg')
     frame_no += 1
 
     # 4. Use the mask to find the lane lines.
     follow_previous_lines = ((bad_frames_count < 4) and (need_init is False))
-    #follow_previous_lines = False
+    # follow_previous_lines = False
 
     if first_frame:
         left_line, right_line, ploty, left_fitx, right_fitx, left_curverad, dist_center = \
@@ -82,16 +92,16 @@ def process_image(frame):
         right_line, right_fitx = right_line_queue.get_last(follow_previous_lines)
 
         left_line, right_line, ploty, left_fitx, right_fitx, left_curverad, dist_center = \
-            line_util.do_line_search( mask, left_line, right_line, follow_previous_lines)
+            line_util.do_line_search(mask, left_line, right_line, follow_previous_lines)
 
     # 5. Sanity check: Are the detected lane lines OK?
     # Performed on the premise that the lines will deviate
     # only a small amount in successive frames.
     # Outliers are neutralized
     left_line_ok = left_line_queue.add(left_line)
-    #left_line_ok = True
+    # left_line_ok = True
     right_line_ok = right_line_queue.add(right_line)
-    #right_line_ok = True
+    # right_line_ok = True
 
     if left_line_ok and right_line_ok:
         successive_good_frames += 1
@@ -124,23 +134,22 @@ def process_image(frame):
     #   - Overlay the polygon of the lane lines
     #   - TBD: Measurement status: red (bad, need init), yellow (averaged), green (3 successive frames good)
     status_color = (0, 255, 0)
-    overlay = image_manipulation.frameOverlay(frame, left_fitx, right_fitx, ploty, left_curverad, dist_center, width=frame.shape[1], height=frame.shape[0], color=status_color)
+    overlay = image_manipulation.frameOverlay(frame, left_fitx, right_fitx, ploty, left_curverad, dist_center,
+                                              width=frame.shape[1], height=frame.shape[0], color=status_color)
     return overlay
 
 
 if __name__ == '__main__':
-    # out_dir='./data/'
-    # output = out_dir + 'generated_harder_challenge_video.mp4'
-    out_dir='/run/media/andrej/Passport/dash-cam-videos/processed/'
-    # TODO: get videos from a folder
-    folder = glob('/run/media/andrej/Passport/dash-cam-videos/*.mp4')
+    out_dir = './data/'
+    output = out_dir + 'generated_harder_challenge_video.mp4'
 
-    for video in folder:
-        output = out_dir + video.split('/')[-1]
-        # TODO: Add CLI
-        # TODO: Add single frame output in matplotlib?
-        clip = VideoFileClip(video) #.subclip(35,43)
-        out_clip = clip.fl_image(process_image)
-        # 7. Add frame back to video
-        #   - Save Video
-        out_clip.write_videofile(output, audio=False)
+    settings = Settings()
+    cli = CLI()
+    args = cli.parser.parse_args(argv)
+    # TODO: Use CLI to guide program execution
+    # TODO: Add single frame output in matplotlib?
+    clip = VideoFileClip("harder_challenge_video.mp4")  # .subclip(35,43)
+    out_clip = clip.fl_image(process_image)
+    # 7. Add frame back to video
+    #   - Save Video
+    out_clip.write_videofile(output, audio=False)
