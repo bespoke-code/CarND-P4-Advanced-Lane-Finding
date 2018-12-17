@@ -4,6 +4,7 @@ import image_manipulation
 import calibration_util as calib
 import line_util
 from moviepy.editor import VideoFileClip
+from glob import glob
 import plots_util
 from matplotlib import pyplot as plt
 
@@ -128,13 +129,18 @@ def process_image(frame):
 
 
 if __name__ == '__main__':
-    out_dir='./data/'
-    output = out_dir+'generated_harder_challenge_video.mp4'
+    # out_dir='./data/'
+    # output = out_dir + 'generated_harder_challenge_video.mp4'
+    out_dir='/run/media/andrej/Passport/dash-cam-videos/processed/'
+    # TODO: get videos from a folder
+    folder = glob('/run/media/andrej/Passport/dash-cam-videos/*.mp4')
 
-    # TODO: Add CLI
-    # TODO: Add single frame output in matplotlib?
-    clip = VideoFileClip("harder_challenge_video.mp4") #.subclip(35,43)
-    out_clip = clip.fl_image(process_image)
-    # 7. Add frame back to video
-    #   - Save Video
-    out_clip.write_videofile(output, audio=False)
+    for video in folder:
+        output = out_dir + video.split('/')[-1]
+        # TODO: Add CLI
+        # TODO: Add single frame output in matplotlib?
+        clip = VideoFileClip(video) #.subclip(35,43)
+        out_clip = clip.fl_image(process_image)
+        # 7. Add frame back to video
+        #   - Save Video
+        out_clip.write_videofile(output, audio=False)

@@ -4,20 +4,22 @@ import calibration_util as calib
 from matplotlib import pyplot as plt
 from scipy import stats
 
-
+# TODO: Modify parameters for the S7 videos!
 lane_width = 680
 deviation = 50
+
 
 # Perspective transformations
 #######################################################################
 def perspective_warp(width=1280, height=720):
-    '''
+    """
     Calculates warp and unwarp matrices based on a fixed set of points.
     :param width: Image width.
     :param height: Image height.
     :return: warp and unwarp matrices, each (3x3) numpy 2D arrays
-    '''
+    """
 
+    # TODO: Change warping points for each image! (Maybe define them w/ respect to Width/Height?)
     top_left =[594, 450] # [520, 500] # [7/16*width, 6/10*height]
     top_right = [687, 450]#[768, 500] # [9/16*width, 6/10*height]
     bottom_left = [262, 670] # [1/16*width, 9/10*height]
