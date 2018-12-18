@@ -8,7 +8,7 @@ from glob import glob
 
 
 class VideoProcessorConfig:
-    def __init__(self, cameraCalib: calib.Calibration, warper: ImageWarper):  # TODO: Implement
+    def __init__(self, cameraCalib: calib.Calibration, warper: ImageWarper):
         assert(cameraCalib is not None)
         self.cameraCalib = cameraCalib
         self.imgWarper = warper
@@ -37,7 +37,7 @@ class VideoProcessorConfig:
 
 
 class VideoProcessor:
-    def __init__(self, videoProcConfig: VideoProcessorConfig, undistorter: Undistorter, imgProc: ImageProcessor):  # TODO: Implement
+    def __init__(self, videoProcConfig: VideoProcessorConfig, undistorter: Undistorter, imgProc: ImageProcessor):
         assert(videoProcConfig is not None)
 
         self.config = videoProcConfig
