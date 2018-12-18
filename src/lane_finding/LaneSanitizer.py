@@ -5,16 +5,13 @@ class LaneSanitizer:
     """
     Holds a queue of lane line polynomials. Can calculate average new line polynomials.
     """
-    weights = [0.1, 0.1, 0.15, 0.3, 0.35]  # used for weighed average calculation
-    ym_per_pix = 30. / 720.  # meters per pixel in y dimension
-    xm_per_pix = 3.7 / 640.
-    ploty = None
-
     def __init__(self, width, height):
+        self.weights = [0.1, 0.1, 0.15, 0.3, 0.35]  # used for weighed average calculation
         self.line_queue = []
         self.capacity = 5
         self.curr_count = 0  # left = index 0, right = index
         self.ploty = np.linspace(0, height - 1, width)
+        self.similarity_coeff = 0.3
         #print('ploty dimensions: ', self.ploty.shape)
 
     def calculate_new_line(self):
@@ -37,7 +34,7 @@ class LaneSanitizer:
     def is_similar(self, new_line):
         #print(np.round(self._slope(new_line) - self._slope(self.calculate_new_line()), 3))
         #return np.abs(self._slope(new_line) - self._slope(self.calculate_new_line())) < 0.05
-        return np.abs(self._slope(new_line) - self._slope(self.calculate_new_line())) < 0.3
+        return np.abs(self._slope(new_line) - self._slope(self.calculate_new_line())) < self.similarity_coeff
 
     def add(self, new_line_polyfit):
         """

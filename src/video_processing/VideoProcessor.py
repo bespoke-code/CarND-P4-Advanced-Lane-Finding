@@ -2,19 +2,26 @@ import src.image_rectification.CameraCalibration as calib
 from src.image_rectification import Undistorter
 from src.lane_finding.LaneFinder import LaneFinder
 from src.lane_finding.LaneSanitizer import LaneSanitizer
-from src.lane_finding import ImageProcessor
+from src.lane_finding.ImageProcessor import ImageProcessor, ImageWarper
 from moviepy.editor import VideoFileClip
 from glob import glob
 
 
 class VideoProcessorConfig:
-    def __init__(self, cameraCalib: calib.Calibration, lane_width_px, lane_length_front_of_car_px):  # TODO: Implement
+    def __init__(self, cameraCalib: calib.Calibration, warper: ImageWarper):  # TODO: Implement
         assert(cameraCalib is not None)
         self.cameraCalib = cameraCalib
+        self.imgWarper = warper
         self.frame_no = 0
         self.first_frame = True
-        self.lane_width_px = lane_width_px
-        self.lane_length_in_front_of_car_px = lane_length_front_of_car_px
+
+    @property
+    def lane_width_px(self):
+        return self.imgWarper.lane_width_px
+
+    @property
+    def lane_length_in_front_of_car_px(self):
+        return self.imgWarper.lane_len_in_front_px
 
     @property
     def width(self):
@@ -30,12 +37,12 @@ class VideoProcessorConfig:
 
 
 class VideoProcessor:
-    def __init__(self, videoProcConfig: VideoProcessorConfig, undistorter: Undistorter):  # TODO: Implement
-        if videoProcConfig is None:
-            self.config = VideoProcessorConfig()
-        else:
-            self.config = videoProcConfig
+    def __init__(self, videoProcConfig: VideoProcessorConfig, undistorter: Undistorter, imgProc: ImageProcessor):  # TODO: Implement
+        assert(videoProcConfig is not None)
+
+        self.config = videoProcConfig
         self.undistorter = undistorter
+        self.imgProc = imgProc
         self.frame_no = 0
 
         self.bad_frames_count = 0
@@ -44,9 +51,12 @@ class VideoProcessor:
                                      vertical_search_space_px=videoProcConfig.lane_length_in_front_of_car_px,
                                      num_windows=9
                                      )
-        self.laneSanitizer = LaneSanitizer(width=videoProcConfig.width,
-                                           height=videoProcConfig.height
-                                           )
+        self.laneSanitizer_left = LaneSanitizer(width=videoProcConfig.width,
+                                                height=videoProcConfig.height
+                                               )
+        self.laneSanitizer_right = LaneSanitizer(width=videoProcConfig.width,
+                                                 height=videoProcConfig.height
+                                                )
 
     @property
     def first_frame(self):
@@ -64,14 +74,78 @@ class VideoProcessor:
         #   - undistort image
         #   - filter out the lines from the image
         #   - return a mask to find the lane lines on
-        mask = image_manipulation.processFrame(frame)  # TODO
-
         frame = self.undistorter.undistort(frame)
         self.frame_no += 1
+        warped_frame = self.config.imgWarper.warp(frame)
 
+        mask = self.imgProc.mask(warped_frame)
         # 3. Use the mask to find the lane lines.
         follow_previous_lines = ((self.bad_frames_count < 4) and (self.need_init is False))
 
+        if self.first_frame:
+            left_line, right_line, ploty, left_fitx, right_fitx, left_curverad, dist_center = \
+                self.laneFinder.do_line_search(mask, None, None, False)
+        else:
+            left_line, left_fitx = self.laneSanitizer_left.get_last(follow_previous_lines)
+            right_line, right_fitx = self.laneSanitizer_right.get_last(follow_previous_lines)
+
+            left_line, right_line, ploty, left_fitx, right_fitx, left_curverad, dist_center = \
+                self.laneFinder.do_line_search(mask, left_line, right_line, follow_previous_lines)
+
+        # 5. Sanity check: Are the detected lane lines OK?
+        # Performed on the premise that the lines will deviate
+        # only a small amount in successive frames.
+        # Outliers are neutralized
+        left_line_ok = self.laneSanitizer_left.add(left_line)
+        # left_line_ok = True
+        right_line_ok = self.laneSanitizer_right.add(right_line)
+        # right_line_ok = True
+
+        if left_line_ok and right_line_ok:
+            self.successive_good_frames += 1
+            need_init = False
+            last_frame_good = True
+            bad_frames_count = 0
+        else:
+            last_frame_good = False
+            successive_good_frames = 0
+
+        if follow_previous_lines:
+            bad_frames_count = 0
+            need_init = False
+            last_frame_good = True
+            successive_good_frames += 1
+        else:
+            bad_frames_count += 1
+            successive_good_frames = 0
+            last_frame_good = False
+            if bad_frames_count >= 5:
+                need_init = True
+
+        if not left_line_ok:
+            left_line, left_fitx = self.laneSanitizer_left.get_last()
+        if not right_line_ok:
+            right_line, right_fitx = self.laneSanitizer_right.get_last()
+
+        # 6. Draw lines and colour-fill polygon
+        #   - Inverse transform to original perspective
+        #   - Overlay the polygon of the lane lines
+        #   - TBD: Measurement status: red (bad, need init), yellow (averaged), green (3 successive frames good)
+        status_color = (0, 255, 0)
+        overlay_warped = self.imgProc.overlayPolygon_warped(frame,
+                                                            left_fitx,
+                                                            right_fitx,
+                                                            ploty,
+                                                            left_curverad,
+                                                            dist_center,
+                                                            width=self.config.width,
+                                                            height=self.config.height,
+                                                            color=status_color)
+
+
+        # Warp the blank back to original image space using inverse perspective matrix (Minv)
+        overlay_unwarped = self.config.imgWarper.unwarp(overlay_warped)
+        return self.imgProc.combineOverlay(frame, overlay_unwarped)
 
 
     def processVideo(self, filename: str, outputFolder: str, outputFilename: str):

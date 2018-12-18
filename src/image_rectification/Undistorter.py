@@ -1,5 +1,5 @@
 import numpy as np
-from cv2 import undistort
+import cv2
 from src.image_rectification.CameraCalibration import Calibration
 
 
@@ -22,8 +22,9 @@ class Undistorter:
     def undistort(self, image: np.array) -> np.array:
         assert(image.shape[0:2] == self.image_size)
 
-        return undistort(image,
-                         cameraMatrix=self.camera_matrix,
-                         distCoeffs=self.distort_coeffs,
-                         newCameraMatrix=self.camera_matrix
-                         )
+        # frame = cv2.undistort(frame, camera_matrix, dist_coeffs, None, camera_matrix)
+        return cv2.undistort(image,
+                             cameraMatrix=self.camera_matrix,
+                             distCoeffs=self.distort_coeffs,
+                             newCameraMatrix=self.camera_matrix
+                             )
