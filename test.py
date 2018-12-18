@@ -29,6 +29,7 @@ left_line_queue = line_util.LineSanitizer(720, 1280)
 right_line_queue = line_util.LineSanitizer(720, 1280)
 
 
+# TODO: Incorporate into VideoProcessor?
 def saveFrame(frame):
     global i
     print('Saving frame', i, '...')

@@ -5,7 +5,6 @@ import calibration_util as calib
 import line_util
 from moviepy.editor import VideoFileClip
 from glob import glob
-import plots_util
 from matplotlib import pyplot as plt
 
 # Global parameters for use
@@ -143,9 +142,6 @@ if __name__ == '__main__':
     out_dir = './data/'
     output = out_dir + 'generated_harder_challenge_video.mp4'
 
-    settings = Settings()
-    cli = CLI()
-    args = cli.parser.parse_args(argv)
     # TODO: Use CLI to guide program execution
     # TODO: Add single frame output in matplotlib?
     clip = VideoFileClip("harder_challenge_video.mp4")  # .subclip(35,43)

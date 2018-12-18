@@ -1,4 +1,4 @@
-from src.image_rectification.CameraCalibration import Calibration, CalibrationFactory
+from src.image_rectification.CameraCalibration import CalibrationFactory
 from src.image_rectification.Undistorter import Undistorter
 from src.video_processing.VideoProcessor import VideoProcessor, VideoProcessorConfig
 from src.lane_finding.ImageProcessor import ImageWarper, ImageProcessor
